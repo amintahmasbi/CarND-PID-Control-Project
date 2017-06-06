@@ -1,5 +1,6 @@
 #ifndef PID_H
 #define PID_H
+#include <uWS/uWS.h>
 
 class PID {
 public:
@@ -9,13 +10,15 @@ public:
   double p_error;
   double i_error;
   double d_error;
-
+  double filtered_total_error;
   /*
   * Coefficients
   */ 
   double Kp;
   double Ki;
   double Kd;
+  double Tf;
+
 
   /*
   * Constructor
@@ -30,7 +33,7 @@ public:
   /*
   * Initialize PID.
   */
-  void Init(double Kp, double Ki, double Kd);
+  void Init(double Kp, double Ki, double Kd, double Tf);
 
   /*
   * Update the PID error variables given cross track error.
@@ -41,6 +44,8 @@ public:
   * Calculate the total PID error.
   */
   double TotalError();
+
+  void Restart(uWS::WebSocket<uWS::SERVER> ws);
 };
 
 #endif /* PID_H */
