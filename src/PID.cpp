@@ -22,15 +22,18 @@ void PID::Init(double Kp, double Ki, double Kd, double Tf)
   p_error = 0;
   d_error = 0;
   i_error = 0;
+  previous_cte = 0;
   filtered_total_error = 0;
 
 }
 
-void PID::UpdateError(double cte) {
+void PID::UpdateError(double cte, double dt) {
 
   p_error = cte;
-  d_error = cte - d_error;
-  i_error += cte;
+  d_error = (cte - previous_cte)/dt;
+  i_error += cte*dt;
+  this->dt = dt;
+  previous_cte = cte;
 
 }
 
@@ -43,7 +46,7 @@ double PID::TotalError() {
   }
   else
   {
-    filtered_total_error = filtered_total_error + (1/Tf)*(err - filtered_total_error);
+    filtered_total_error = filtered_total_error + (dt/Tf)*(err - filtered_total_error);
   }
 
   filtered_total_error = (filtered_total_error > 1) ? 1 : filtered_total_error;
