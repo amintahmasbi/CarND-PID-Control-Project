@@ -35,14 +35,35 @@ int main()
 
   PID steer_pid;
   PID speed_pid;
-  // TODO: Initialize the pid variable.
-  steer_pid.Init(0.01,0.01,0.01,0.0);
-  speed_pid.Init(1.0,1.0,1.0,0.0);
+
+  // To run Twiddle for parameter calibration of PID controller
+  // Keep this as TRUE if your controller is already calibrated
+  bool is_steer_calibrated = false;
+  bool is_speed_calibrated = true; //TODO: should be implemented
+
+  // Initialize the pid variable.
+  // To find initial values, run calibration only once -> is_steer_calibrated = false
+  if (is_steer_calibrated && is_speed_calibrated)
+  {
+    steer_pid.Init(0.0,0.0,0.0,0.0,is_steer_calibrated);
+    speed_pid.Init(0.0,0.0,0.0,0.0,is_speed_calibrated);
+  }
+  else //First step of calibration: Set Initial values to zero
+  {
+    steer_pid.Init(0.0,0.0,0.0,0.0,is_steer_calibrated);
+    speed_pid.Init(0.0,0.0,0.0,0.0,is_speed_calibrated);
+  }
+
+  //This two variables are used by controller for delta_t
   clock_t current_time = clock();
   clock_t previous_time = clock();
 
 
-  h.onMessage([&steer_pid, &speed_pid, &current_time, &previous_time](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+
+
+
+  h.onMessage([&steer_pid, &speed_pid, &current_time, &previous_time]
+               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -58,26 +79,36 @@ int main()
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
+          //calculate delta_t between the last two data received from simulator
           current_time = clock();
           double diff_time = double(current_time - previous_time);
-          double dt = (diff_time == 0)? 1.0/CLOCKS_PER_SEC:diff_time/CLOCKS_PER_SEC;
+          double dt = (diff_time <= 0)? 1.0/CLOCKS_PER_SEC:diff_time/CLOCKS_PER_SEC;
           previous_time = current_time;
           /*
-          * TODO: Calcuate steering value here, remember the steering value is
-          * [-1, 1].
-          * NOTE: Feel free to play around with the throttle and speed. Maybe use
-          * another PID controller to control the speed!
-          */
+           * Calcuating steering value here, remember the steering value is
+           * [-1, 1].
+           */
           double steer_value;
-          steer_pid.UpdateError(cte,dt);
-          steer_value = steer_pid.TotalError();
-          
-          // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " deltaT: " << dt << std::endl;
 
-          if (abs(cte) > 2.3) // Passed the Lane
+          //Update error and calculate steering
+          if(steer_pid.isCalibrated)
           {
-            steer_pid.Restart(ws);
+            steer_pid.UpdateError(cte,dt);
+            steer_value = steer_pid.TotalError();
+          }
+          else
+          {
+            steer_pid.UpdateError(cte,dt);
+            steer_value = steer_pid.TotalError();
+
+            if (abs(cte) > 2.3 || steer_pid.succSteps >= 1000) // Passed the Lane margin in simulator
+            {
+              // DEBUG
+              std::cout << "P=" << steer_pid.Kp << " I=" << steer_pid.Ki << " D=" << steer_pid.Kd << " steps= " << steer_pid.succSteps<< std::endl;
+              //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " deltaT: " << dt << std::endl;
+              //Restart the simulator and run Twiddle to calibrate
+              steer_pid.Restart(ws);
+            }
           }
           json msgJson;
           msgJson["steering_angle"] = steer_value;
