@@ -38,14 +38,14 @@ int main()
 
   // To run Twiddle for parameter calibration of PID controller
   // Keep this as TRUE if your controller is already calibrated
-  bool is_steer_calibrated = false;
+  bool is_steer_calibrated = true;
   bool is_speed_calibrated = true; //TODO: should be implemented
 
   // Initialize the pid variable.
   // To find initial values, run calibration only once -> is_steer_calibrated = false
   if (is_steer_calibrated && is_speed_calibrated)
   {
-    steer_pid.Init(0.0,0.0,0.0,0.0,is_steer_calibrated);
+    steer_pid.Init(0.705292,0.0,0.00415857,0.0,is_steer_calibrated);
     speed_pid.Init(0.0,0.0,0.0,0.0,is_speed_calibrated);
   }
   else //First step of calibration: Set Initial values to zero
@@ -57,8 +57,6 @@ int main()
   //This two variables are used by controller for delta_t
   clock_t current_time = clock();
   clock_t previous_time = clock();
-
-
 
 
 
@@ -89,30 +87,35 @@ int main()
            * [-1, 1].
            */
           double steer_value;
+          //Only first 500 steps are used toward calibration
+          int termination_steps = 500;
 
           //Update error and calculate steering
           if(steer_pid.isCalibrated)
           {
-            steer_pid.UpdateError(cte,dt);
+            steer_pid.UpdateError(cte,dt,speed);
             steer_value = steer_pid.TotalError();
           }
           else
           {
-            steer_pid.UpdateError(cte,dt);
+            steer_pid.UpdateError(cte,dt,speed);
             steer_value = steer_pid.TotalError();
 
-            if (abs(cte) > 2.3 || steer_pid.succSteps >= 1000) // Passed the Lane margin in simulator
+            if (abs(cte) > 2.3 || steer_pid.succSteps >= termination_steps) // Passed the Lane margin in simulator
             {
               // DEBUG
-              std::cout << "P=" << steer_pid.Kp << " I=" << steer_pid.Ki << " D=" << steer_pid.Kd << " steps= " << steer_pid.succSteps<< std::endl;
+//              std::cout << "STR P=" << steer_pid.Kp << " I=" << steer_pid.Ki << " D=" << steer_pid.Kd << " steps= " << steer_pid.succSteps<< std::endl;
               //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " deltaT: " << dt << std::endl;
               //Restart the simulator and run Twiddle to calibrate
               steer_pid.Restart(ws);
             }
           }
+
+          double throttle_value = 0.3;
+
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = throttle_value;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           //std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);

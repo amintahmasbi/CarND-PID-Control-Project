@@ -28,6 +28,7 @@ void PID::Init(double Kp, double Ki, double Kd, double Tf, bool isCalibrated)
 
     calibrationTolerance = 0.1;
     calError = 0.0;
+    calSpeed = 0.0;
     succSteps = 0;
     dKp = 1.0;
     dKi = 1.0;
@@ -61,13 +62,14 @@ void PID::Init(double Kp, double Ki, double Kd, double Tf, bool isCalibrated)
 
 }
 
-void PID::UpdateError(double cte, double dt) {
+void PID::UpdateError(double cte, double dt, double speed) {
 
   p_error = cte;
   d_error = (cte - previous_cte)/dt;
   i_error += cte*dt;
   this->dt = dt;
   previous_cte = cte;
+  this->speed = speed;
 
 }
 
@@ -91,6 +93,7 @@ double PID::TotalError() {
   if(!this->isCalibrated)
   {
      calError += p_error*p_error;
+     calSpeed += speed;
      succSteps++;
   }
 
@@ -101,6 +104,10 @@ void PID::Twiddle()
 {
   double tol = dKp+dKi+dKd;
   calError /= succSteps;
+
+  //Special criterion for speed to avoid the very slow complete left-right steering condition
+  calSpeed /= succSteps;
+  calError += 10/calSpeed;
   //Termination condition
   if(tol < calibrationTolerance)
   {
@@ -227,7 +234,9 @@ void PID::Twiddle()
 
     //this->Tf = 0.0; //TODO: smooth factor calibration
 
+    //Reset error to restart simulator
     calError = 0.0;
+    calSpeed = 0.0;
     succSteps = 0;
 
   }

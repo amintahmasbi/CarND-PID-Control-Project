@@ -37,6 +37,7 @@ class PID {
 
   //Total error of each run for calibration
   double calError;
+  double speed,calSpeed;
 
   //Checks for different parameters calibration
   bool p_check,i_check; //d_check;
@@ -63,7 +64,7 @@ class PID {
   /*
    * Update the PID error variables given cross track error.
    */
-  void UpdateError(double cte, double dt);
+  void UpdateError(double cte, double dt, double speed);
 
   /*
    * Calculate the total PID error.
