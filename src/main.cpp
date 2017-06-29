@@ -38,14 +38,15 @@ int main()
 
   // To run Twiddle for parameter calibration of PID controller
   // Keep this as TRUE if your controller is already calibrated
-  bool is_steer_calibrated = true;
+  bool is_steer_calibrated = true; // make it false to calibrate
   bool is_speed_calibrated = true; //TODO: should be implemented
 
   // Initialize the pid variable.
   // To find initial values, run calibration only once -> is_steer_calibrated = false
   if (is_steer_calibrated && is_speed_calibrated)
   {
-    steer_pid.Init(0.705292,0.0,0.00415857,0.0,is_steer_calibrated);
+    //steer_pid.Init(0.705292,0.0,0.00415857,0.0,is_steer_calibrated);
+    steer_pid.Init(0.35174,0.00884887,0.00380059,0.0,is_steer_calibrated);
     speed_pid.Init(0.0,0.0,0.0,0.0,is_speed_calibrated);
   }
   else //First step of calibration: Set Initial values to zero
@@ -77,41 +78,49 @@ int main()
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
+
           //calculate delta_t between the last two data received from simulator
           current_time = clock();
           double diff_time = double(current_time - previous_time);
           double dt = (diff_time <= 0)? 1.0/CLOCKS_PER_SEC:diff_time/CLOCKS_PER_SEC;
           previous_time = current_time;
+
           /*
            * Calcuating steering value here, remember the steering value is
            * [-1, 1].
            */
           double steer_value;
           //Only first 500 steps are used toward calibration
-          int termination_steps = 500;
+          int termination_steps = 1500; //full lap with 30 mph
+
+          double target_speed = 100.0;
+
+          double speed_error = target_speed - speed;
 
           //Update error and calculate steering
           if(steer_pid.isCalibrated)
           {
-            steer_pid.UpdateError(cte,dt,speed);
+            steer_pid.UpdateError(cte,dt,speed_error);
             steer_value = steer_pid.TotalError();
           }
           else
           {
-            steer_pid.UpdateError(cte,dt,speed);
+            steer_pid.UpdateError(cte,dt,speed_error);
             steer_value = steer_pid.TotalError();
 
             if (abs(cte) > 2.3 || steer_pid.succSteps >= termination_steps) // Passed the Lane margin in simulator
             {
               // DEBUG
-//              std::cout << "STR P=" << steer_pid.Kp << " I=" << steer_pid.Ki << " D=" << steer_pid.Kd << " steps= " << steer_pid.succSteps<< std::endl;
+              std::cout << "Error: " << steer_pid.best_error << std::endl;
+              std::cout << "STR P=" << steer_pid.Kp << " I=" << steer_pid.Ki << " D=" << steer_pid.Kd << " steps= " << steer_pid.succSteps<< std::endl;
+              std::cout << "STR dP=" << steer_pid.dKp << " dI=" << steer_pid.dKi << " dD=" << steer_pid.dKd << std::endl << "*********************************" <<std::endl;
               //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " deltaT: " << dt << std::endl;
               //Restart the simulator and run Twiddle to calibrate
               steer_pid.Restart(ws);
             }
           }
 
-          double throttle_value = 0.3;
+          double throttle_value = 0.3;//tuned for 0.3
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;

@@ -21,18 +21,19 @@ void PID::Init(double Kp, double Ki, double Kd, double Tf, bool isCalibrated)
   //Reset all values for calibration
   if(!this->isCalibrated)
   {
-    this->Kp = 0.0;
-    this->Ki = 0.0;
-    this->Kd = 0.0;
+    this->Kp = 0.0;//    this->Kp = 0.35174;
+    this->Ki = 0.0;//    this->Ki = 0.00884887;
+    this->Kd = 0.0;//    this->Kd = 0.00380059;
+
     this->Tf = 0.0;
 
-    calibrationTolerance = 0.1;
+    calibrationTolerance = 0.01;
     calError = 0.0;
     calSpeed = 0.0;
     succSteps = 0;
-    dKp = 1.0;
-    dKi = 1.0;
-    dKd = 1.0;
+    dKp = 1.0;//dKp = 0.4;
+    dKi = 1.0;//dKi = 0.01;
+    dKd = 1.0;//dKd = 0.1;
 
     p_check = false;
     i_check = false;
@@ -62,14 +63,14 @@ void PID::Init(double Kp, double Ki, double Kd, double Tf, bool isCalibrated)
 
 }
 
-void PID::UpdateError(double cte, double dt, double speed) {
+void PID::UpdateError(double cte, double dt, double speed_error) {
 
   p_error = cte;
   d_error = (cte - previous_cte)/dt;
   i_error += cte*dt;
   this->dt = dt;
   previous_cte = cte;
-  this->speed = speed;
+  this->speedError = speed_error;
 
 }
 
@@ -93,7 +94,7 @@ double PID::TotalError() {
   if(!this->isCalibrated)
   {
      calError += p_error*p_error;
-     calSpeed += speed;
+     calSpeed += speedError*speedError;
      succSteps++;
   }
 
@@ -107,7 +108,7 @@ void PID::Twiddle()
 
   //Special criterion for speed to avoid the very slow complete left-right steering condition
   calSpeed /= succSteps;
-  calError += 10/calSpeed;
+  calError += calSpeed;
   //Termination condition
   if(tol < calibrationTolerance)
   {
