@@ -1,7 +1,20 @@
 # CarND-Controls-PID
-Self-Driving Car Engineer Nanodegree Program
+PID controller project
 
 ---
+## Reflections
+I ended up implementing the Twiddle algorithm for paramter tuning of the pid controller. For this specific project speed of the vehicle and the cross track error (CTE) which is the distance from center lane were provided through simulator, so the `cost function` is set in such a way that the optimizer (twiddle) should minimize the CTE and maximize speed (using a throttle value of 0.3, the speed error is calculated based on current speed and the highest acheivable speed of 100).
+During the calibration of the simulator, the following behaviours were noticed:
+1. The changes in the gain of P part of controller (`Kp`) would make the vehicle steer sharper and lower. If this was the only value to tweak, the vehicle would form wave-like maneauvers.
+2. The changes in the gain of I part of controller (`Ki`) would make the vehicle to steer more than necessary. Since there was no drift noise in the vehicle, the final value of I part became really close to zero.
+
+3. The changes in the gain of D part of controller (`Kd`) would change the rate of change in the steering. A high value for this gain would make the car to steer sharply back and forth quickly. It was noticed that if the speed error was not a factor in the cost function, a high value of `Kd` would keep the vehicle at center of the lane, but moving really slow because of the rapid steering change.
+
+A sample of the first few steps of calibration among the above mentioned characteristics can be seen at: [click for sample video](https://youtu.be/sQVLuEvRnx0) and their correspoding gain and error values can be seen at [screenshot](./Readme_files/Readme_files/SampleCalibrationValues.png) 
+
+The final parameters were chosen based on the `caliberation tolerance` of `0.1` (which is the sum of gain steps), and termination conditions of either `CTE > 2.3` or `simulation steps > 1000`. Although it is possible to fine-tune the parameters even more, the exisiting values pass the requirments of the project.
+
+***note:*** *during my calibration, I notice that unlike was suggested in the course, the Initial steps for twiddle should not be in the same order of magnitude. It is better to start with a smaller values for I and D parts to avoid Local minimas*  
 
 ## Dependencies
 
@@ -48,37 +61,3 @@ cmake and make!
 More information is only accessible by people who are already enrolled in Term 2
 of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/e8235395-22dd-4b87-88e0-d108c5e5bbf4/concepts/6a4d8d42-6a04-4aa6-b284-1697c0fd6562)
 for instructions and the project rubric.
-
-## Hints!
-
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to we ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
